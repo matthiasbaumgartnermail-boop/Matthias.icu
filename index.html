@@ -3,40 +3,29 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
   <title>Matthias Baumgartner</title>
   <meta name="description" content="Persönliche Startseite von Matthias Baumgartner mit Services, BMW 330e in Alpinweiß und Kontakt." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=2026-03-02-live" />
-  <meta name="emoji" content="😊" />
+  <link rel="stylesheet" href="styles.css?v=2024-04-01" />
 </head>
 <body>
-  <div class="bg-shape bg-shape-a" aria-hidden="true"></div>
-  <div class="bg-shape bg-shape-b" aria-hidden="true"></div>
-
   <header class="site-header">
-    <a href="#top" class="brand-wrap" style="text-decoration:none;color:inherit;">
+    <a href="#top" class="brand-wrap">
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-stack">
         <span class="brand-title">matthias.icu</span>
         <span class="brand-sub">Digitaler Startpunkt für Projekte</span>
       </span>
     </a>
-    <div class="header-right">
-      <nav class="main-nav">
-        <a href="#services" style="text-decoration:none;">Services</a>
-        <a href="#bmw" style="text-decoration:none;">BMW 330e</a>
-        <a href="#about" style="text-decoration:none;">Über mich</a>
-        <a href="#ideas" style="text-decoration:none;">Ideen</a>
-      </nav>
-      <a class="header-cta" href="/service" rel="noopener noreferrer" style="text-decoration:none;" id="praeServiceLink">
-        PRAE Service
-      </a>
-    </div>
+    <nav class="main-nav">
+      <a href="#services">Services</a>
+      <a href="#bmw">BMW 330e</a>
+      <a href="#about">Über mich</a>
+      <a href="#ideas">Ideen</a>
+    </nav>
+    <a class="header-cta" href="/service" rel="noopener noreferrer" id="praeServiceLink">PRAE Service</a>
   </header>
 
   <main id="top" class="container">
@@ -70,9 +59,7 @@
             Trainingszeiten erfassen, Dokumente generieren, signieren und per
             E-Mail versenden.
           </p>
-          <a class="card-link" href="/service" rel="noopener noreferrer" id="praeServiceLinkCard">
-            Service öffnen
-          </a>
+          <a class="card-link" href="/service" rel="noopener noreferrer" id="praeServiceLinkCard">Service öffnen</a>
         </article>
 
         <article class="card reveal delay-2">
@@ -202,54 +189,15 @@
     <p>© <span id="year"></span> Matthias Baumgartner</p>
   </footer>
 
-  <script src="app.js?v=2026-03-02-live"></script>
+  <script src="app.js?v=2024-04-01"></script>
+
   <script>
-    // Prevent navigation to PDF view on mobile by intercepting PRAE Service link click
-    (function() {
-      function isMobile() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    // Dynamically set current year
+    (function () {
+      var yearEl = document.getElementById("year");
+      if (yearEl) {
+        yearEl.textContent = new Date().getFullYear();
       }
-
-      function downloadFile(url, filename) {
-        fetch(url, {cache: 'no-store'})
-          .then(function(response) {
-            if (!response.ok) {
-              throw new Error('Download fehlgeschlagen');
-            }
-            return response.blob();
-          })
-          .then(function(blob) {
-            var link = document.createElement('a');
-            var urlBlob = URL.createObjectURL(blob);
-            link.href = urlBlob;
-            link.download = filename || '';
-            document.body.appendChild(link);
-            link.click();
-            setTimeout(function() {
-              document.body.removeChild(link);
-              URL.revokeObjectURL(urlBlob);
-            }, 100);
-          })
-          .catch(function(error) {
-            console.error('Fehler beim Download:', error);
-            // Fallback: navigate to the URL
-            window.location.href = url;
-          });
-      }
-
-      var praeLinks = [document.getElementById('praeServiceLink'), document.getElementById('praeServiceLinkCard')];
-      praeLinks.forEach(function(link) {
-        if (!link) return;
-        link.removeAttribute('target');
-        link.addEventListener('click', function(event) {
-          if (isMobile()) {
-            event.preventDefault();
-            var href = link.getAttribute('href');
-            if (!href) return;
-            downloadFile(href + '/prae.pdf', 'prae.pdf');
-          }
-        });
-      });
     })();
   </script>
 </body>
