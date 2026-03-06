@@ -38,6 +38,21 @@
   var GUEST_NAME_KEY = "matthias_icu_guest_name";
   var LOCAL_COMMENTS_KEY = "matthias_icu_comments_local";
 
+  // Admin login state (saved in sessionStorage for simplicity)
+  var ADMIN_SESSION_KEY = "matthias_icu_admin_logged_in";
+
+  function isAdmin() {
+    return sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
+  }
+
+  function setAdminLoggedIn(loggedIn) {
+    if (loggedIn) {
+      sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
+    } else {
+      sessionStorage.removeItem(ADMIN_SESSION_KEY);
+    }
+  }
+
   function setStatus(message, isError) {
     commentStatus.textContent = message || "";
     commentStatus.style.color = isError ? "#9a2f2f" : "#4a6478";
@@ -109,6 +124,27 @@
     identity.appendChild(name);
     head.appendChild(identity);
     head.appendChild(date);
+
+    // Add delete button if admin
+    if (isAdmin()) {
+      var delButton = document.createElement("button");
+      delButton.textContent = "Löschen";
+      delButton.style.marginLeft = "auto";
+      delButton.style.backgroundColor = "#f28c00";
+      delButton.style.color = "white";
+      delButton.style.border = "none";
+      delButton.style.borderRadius = "6px";
+      delButton.style.padding = "2px 8px";
+      delButton.style.cursor = "pointer";
+      delButton.title = "Kommentar löschen";
+      delButton.addEventListener("click", function () {
+        if (confirm(`Kommentar von '${item.guest_name}' wirklich löschen?`)) {
+          deleteComment(item.id);
+        }
+      });
+      head.appendChild(delButton);
+    }
+
     wrapper.appendChild(head);
     wrapper.appendChild(text);
     return wrapper;
@@ -181,6 +217,120 @@
         setStatus(String(err && err.message ? err.message : err), true);
       }
     }
+  }
+
+  async function deleteComment(commentId) {
+    if (!commentId) return;
+    setStatus("Lösche Kommentar...", false);
+    try {
+      var response = await fetch("/api/comments/" + encodeURIComponent(commentId), {
+        method: "DELETE"
+      });
+      if (!response.ok) {
+        throw new Error("Kommentar konnte nicht gelöscht werden.");
+      }
+      setStatus("Kommentar gelöscht.", false);
+      await loadComments();
+    } catch (err) {
+      setStatus("Fehler beim Löschen des Kommentars: " + (err.message || err), true);
+    }
+  }
+
+  // Login form for admin
+  function createAdminLoginForm() {
+    var container = document.createElement("div");
+    container.style.border = "1px solid #f28c00";
+    container.style.padding = "12px";
+    container.style.borderRadius = "10px";
+    container.style.marginBottom = "16px";
+    container.style.backgroundColor = "#fff8e1";
+
+    var title = document.createElement("h4");
+    title.textContent = "Admin Login";
+    title.style.color = "#f28c00";
+    title.style.fontFamily = '"DM Serif Display", Georgia, serif';
+    container.appendChild(title);
+
+    var input = document.createElement("input");
+    input.type = "password";
+    input.placeholder = "Admin Passwort";
+    input.style.padding = "8px";
+    input.style.width = "calc(100% - 90px)";
+    input.style.marginRight = "8px";
+    input.style.border = "1px solid #ccc";
+    input.style.borderRadius = "6px";
+
+    var btn = document.createElement("button");
+    btn.textContent = "Einloggen";
+    btn.style.backgroundColor = "#f28c00";
+    btn.style.color = "white";
+    btn.style.border = "none";
+    btn.style.borderRadius = "6px";
+    btn.style.padding = "8px 12px";
+    btn.style.cursor = "pointer";
+
+    btn.addEventListener("click", function () {
+      var pwd = input.value;
+      // Einfaches Admin-Passwort prüfen (hier "admin123" als Beispiel)
+      if (pwd === "admin123") {
+        setAdminLoggedIn(true);
+        container.remove();
+        renderCommentsUI();
+        setStatus("Admin Login erfolgreich. Kommentare können nun gelöscht werden.", false);
+      } else {
+        alert("Falsches Passwort.");
+        input.value = "";
+        input.focus();
+      }
+    });
+
+    container.appendChild(input);
+    container.appendChild(btn);
+
+    return container;
+  }
+
+  var commentBoard = document.querySelector(".comment-board");
+
+  function renderCommentsUI() {
+    if (!commentBoard) return;
+
+    // Entferne evtl vorhandenes login form
+    var existingLogin = commentBoard.querySelector(".admin-login-container");
+    if (existingLogin) {
+      existingLogin.remove();
+    }
+
+    if (!isAdmin()) {
+      // Zeige Login Formular an
+      var loginForm = createAdminLoginForm();
+      loginForm.classList.add("admin-login-container");
+      commentBoard.insertBefore(loginForm, commentBoard.firstChild);
+    } else {
+      // Admin ist eingeloggt
+      // Zeige Logout Button
+      var logoutBtn = commentBoard.querySelector(".admin-logout-btn");
+      if (!logoutBtn) {
+        logoutBtn = document.createElement("button");
+        logoutBtn.textContent = "Admin Logout";
+        logoutBtn.className = "admin-logout-btn";
+        logoutBtn.style.marginBottom = "12px";
+        logoutBtn.style.backgroundColor = "#f28c00";
+        logoutBtn.style.color = "white";
+        logoutBtn.style.border = "none";
+        logoutBtn.style.borderRadius = "6px";
+        logoutBtn.style.padding = "8px 12px";
+        logoutBtn.style.cursor = "pointer";
+        logoutBtn.addEventListener("click", function () {
+          setAdminLoggedIn(false);
+          renderCommentsUI();
+          setStatus("Admin-Logout erfolgreich.", false);
+        });
+        commentBoard.insertBefore(logoutBtn, commentBoard.firstChild);
+      }
+    }
+
+    loadComments();
   }
 
   var savedGuestName = "";
@@ -284,5 +434,7 @@
   commentInput.addEventListener("input", updateCounter);
 
   updateCounter();
-  loadComments();
+
+  renderCommentsUI();
+
 })();
