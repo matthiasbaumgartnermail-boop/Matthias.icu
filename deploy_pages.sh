@@ -4,8 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SITE_DIR="$PROJECT_ROOT/website"
-PROJECT_NAME="${1:-matthias-homepage}"
-DEPLOY_BRANCH="${2:-production}"
+PROJECT_NAME="${1:-matthias-icu}"
+DEPLOY_BRANCH="${2:-main}"
 
 if [[ ! -d "$SITE_DIR" ]]; then
   echo "Website-Verzeichnis nicht gefunden: $SITE_DIR"
@@ -55,7 +55,7 @@ if [[ "$PROJECT_EXISTS" -eq 1 ]]; then
 else
   echo "Projekt '$PROJECT_NAME' nicht gefunden (oder nicht auslesbar). Versuche Erstellung ..."
   set +e
-  CREATE_OUTPUT="$(${WRANGLER[@]} pages project create "$PROJECT_NAME" --production-branch production 2>&1)"
+  CREATE_OUTPUT="$(${WRANGLER[@]} pages project create "$PROJECT_NAME" --production-branch "$DEPLOY_BRANCH" 2>&1)"
   CREATE_EXIT=$?
   set -e
   if [[ "$CREATE_EXIT" -eq 0 ]]; then
@@ -69,11 +69,14 @@ else
 fi
 
 echo "Deploye Website aus: $SITE_DIR"
-${WRANGLER[@]} pages deploy "$SITE_DIR" \
-  --project-name "$PROJECT_NAME" \
-  --branch "$DEPLOY_BRANCH" \
-  --commit-dirty=true \
-  --functions "$SITE_DIR/functions"
+# Wrangler v4 erkennt `functions/` automatisch relativ zum CWD.
+(
+  cd "$SITE_DIR"
+  ${WRANGLER[@]} pages deploy . \
+    --project-name "$PROJECT_NAME" \
+    --branch "$DEPLOY_BRANCH" \
+    --commit-dirty=true
+)
 
 echo
 echo "Deploy abgeschlossen."

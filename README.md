@@ -43,12 +43,12 @@ brew install node
 Dann deployen:
 ```bash
 cd /Users/matthiasbaumgartner/Coding/PraeProject
-./website/deploy_pages.sh matthias-homepage production
+./website/deploy_pages.sh matthias-icu main
 ```
 
 ### 3) Domain verbinden
 Im Cloudflare Dashboard:
-- `Workers & Pages` -> `matthias-homepage` -> `Custom domains`
+- `Workers & Pages` -> `matthias-icu` -> `Custom domains`
 - `matthias.icu` verbinden
 - optional `www.matthias.icu`
 
@@ -63,7 +63,7 @@ Damit Kommentare fuer alle gespeichert werden, braucht das Pages-Projekt eine D1
 2. Name z.B. `matthias-home-comments`
 
 ### B) D1 mit Pages-Projekt verbinden
-1. `Workers & Pages` -> `matthias-homepage` -> `Settings` -> `Functions`
+1. `Workers & Pages` -> `matthias-icu` -> `Settings` -> `Functions`
 2. `D1 database bindings` -> `Add binding`
 3. Binding name: `COMMENTS_DB`
 4. Database: `matthias-home-comments`
@@ -72,5 +72,17 @@ Damit Kommentare fuer alle gespeichert werden, braucht das Pages-Projekt eine D1
 ### C) Neu deployen
 ```bash
 cd /Users/matthiasbaumgartner/Coding/PraeProject
-./website/deploy_pages.sh matthias-homepage production
+./website/deploy_pages.sh matthias-icu main
 ```
+
+### D) Admin-Löschen von Kommentaren aktivieren
+1. `Workers & Pages` -> `matthias-icu` -> `Settings` -> `Variables and Secrets`
+2. Neues Secret anlegen:
+   - Name: `COMMENTS_ADMIN_TOKEN`
+   - Value: ein langes, eigenes Geheimnis
+3. Speichern und neu deployen.
+
+Auf der Website:
+- Unter „Neueste Kommentare“ auf `Admin anmelden` klicken.
+- `COMMENTS_ADMIN_TOKEN` eingeben.
+- Danach erscheint bei jedem Kommentar ein `Löschen`-Button.

@@ -3,35 +3,45 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Matthias Baumgartner</title>
   <meta name="description" content="Persönliche Startseite von Matthias Baumgartner mit Services, BMW 330e in Alpinweiß und Kontakt." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=2024-04-01" />
+  <link rel="stylesheet" href="styles.css?v=2026-03-06-1" />
 </head>
 <body>
+  <div class="bg-shape bg-shape-a" aria-hidden="true"></div>
+  <div class="bg-shape bg-shape-b" aria-hidden="true"></div>
+
   <header class="site-header">
-    <a href="#top" class="brand-wrap">
+    <a href="#top" class="brand-wrap" style="text-decoration:none;color:inherit;">
       <span class="brand-mark" aria-hidden="true"></span>
       <span class="brand-stack">
         <span class="brand-title">matthias.icu</span>
         <span class="brand-sub">Digitaler Startpunkt für Projekte</span>
       </span>
     </a>
-    <nav class="main-nav">
-      <a href="#services">Services</a>
-      <a href="#bmw">BMW 330e</a>
-      <a href="#about">Über mich</a>
-      <a href="#ideas">Ideen</a>
-    </nav>
-    <a class="header-cta" href="/service" rel="noopener noreferrer" id="praeServiceLink" target="_blank">PRAE Service</a>
+    <div class="header-right">
+      <nav class="main-nav">
+        <a href="#services" style="text-decoration:none;">Services</a>
+        <a href="#bmw" style="text-decoration:none;">BMW 330e</a>
+        <a href="#about" style="text-decoration:none;">Über mich</a>
+        <a href="#ideas" style="text-decoration:none;">Ideen</a>
+      </nav>
+      <a class="header-cta" href="/service" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+        PRAE Service
+      </a>
+    </div>
   </header>
 
   <main id="top" class="container">
     <section class="hero reveal">
       <p class="eyebrow">Private Homepage</p>
-      <h1>Willkommen 😊</h1>
+      <h1>Matthias Baumgartner</h1>
       <p class="lead">
         Willkommen auf meiner persönlichen Startseite. Hier findest du meinen
         PRAE-Service, meinen BMW 330e in Alpinweiß und einen schnellen Einstieg in
@@ -59,7 +69,9 @@
             Trainingszeiten erfassen, Dokumente generieren, signieren und per
             E-Mail versenden.
           </p>
-          <a class="card-link" href="/service" rel="noopener noreferrer" id="praeServiceLinkCard">Service öffnen</a>
+          <a class="card-link" href="/service" target="_blank" rel="noopener noreferrer">
+            Service öffnen
+          </a>
         </article>
 
         <article class="card reveal delay-2">
@@ -84,20 +96,20 @@
 
       <div class="gallery">
         <figure class="photo reveal delay-1">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/4/4b/BMW_330e_IMG_2021.jpg" alt="BMW 330e in Alpinweiß, Frontansicht" loading="lazy" onerror="this.onerror=null;this.src='assets/bmw/bmw-01.svg';" />
-          <figcaption>Front / Exterieur (BMW 330e, Alpinweiß)</figcaption>
+          <img src="assets/bmw/bmw-01.jpg" alt="BMW 330e in Alpinweiß, Seitenansicht am See" loading="lazy" onerror="this.onerror=null;this.src='assets/bmw/bmw-01.svg';" />
+          <figcaption>Seitenansicht am See</figcaption>
         </figure>
         <figure class="photo reveal delay-2">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/9/9f/BMW_330e_IMG_2022.jpg" alt="BMW 330e in Alpinweiß, Seitenansicht" loading="lazy" onerror="this.onerror=null;this.src='assets/bmw/bmw-02.svg';" />
-          <figcaption>Seite / Felgen (BMW 330e, Alpinweiß)</figcaption>
+          <img src="assets/bmw/bmw-02.jpg" alt="BMW 330e in Alpinweiß, Frontansicht am See" loading="lazy" onerror="this.onerror=null;this.src='assets/bmw/bmw-02.svg';" />
+          <figcaption>Frontansicht am See</figcaption>
         </figure>
         <figure class="photo reveal delay-3">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/3/39/2021_BMW_330e_M_Sport_Auto.jpg" alt="BMW 330e in Alpinweiß, Detailansicht" loading="lazy" onerror="this.onerror=null;this.src='assets/bmw/bmw-03.svg';" />
-          <figcaption>Detailansicht / M Sport (BMW 330e)</figcaption>
+          <img src="assets/bmw/bmw-03.jpg" alt="BMW 330e in Alpinweiß bei Sonnenuntergang" loading="lazy" onerror="this.onerror=null;this.src='assets/bmw/bmw-03.svg';" />
+          <figcaption>Golden Hour im Feld</figcaption>
         </figure>
       </div>
       <p class="hint">
-        Bildquellen: Wikimedia Commons (CC BY-SA).
+        Bildquelle: Eigene Fotos.
       </p>
     </section>
 
@@ -146,7 +158,35 @@
       </ul>
 
       <div class="comment-board reveal delay-1">
-        <h3>Ideen von Gästen</h3>
+        <div class="comment-board-head">
+          <h3>Ideen von Gästen</h3>
+          <button
+            id="adminToggleBtn"
+            type="button"
+            class="comment-admin-toggle"
+            aria-expanded="false"
+            aria-controls="adminPanel"
+            title="Admin-Bereich"
+          >
+            Admin
+          </button>
+        </div>
+        <div id="adminPanel" class="comments-admin-panel" hidden>
+          <p id="adminState" class="comment-admin-state">Admin aus</p>
+          <form id="adminTokenForm" class="comment-admin-form">
+            <input
+              id="adminTokenInput"
+              class="comment-admin-input"
+              type="password"
+              autocomplete="off"
+              placeholder="Admin-Token eingeben"
+            />
+            <button id="adminLoginBtn" type="submit" class="btn btn-ghost comment-admin-btn">Aktivieren</button>
+            <button id="adminLogoutBtn" type="button" class="btn btn-ghost comment-admin-btn comment-admin-btn-danger" hidden>
+              Abmelden
+            </button>
+          </form>
+        </div>
         <p class="comment-intro">
           Ohne Anmeldung: Gastname und Idee eintragen.
         </p>
@@ -189,16 +229,6 @@
     <p>© <span id="year"></span> Matthias Baumgartner</p>
   </footer>
 
-  <script src="app.js?v=2024-04-01"></script>
-
-  <script>
-    // Dynamically set current year
-    (function () {
-      var yearEl = document.getElementById("year");
-      if (yearEl) {
-        yearEl.textContent = new Date().getFullYear();
-      }
-    })();
-  </script>
+  <script src="app.js?v=2026-03-06-1"></script>
 </body>
 </html>

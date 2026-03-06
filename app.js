@@ -30,6 +30,13 @@
   var commentStatus = document.getElementById("commentStatus");
   var commentSubmitBtn = document.getElementById("commentSubmitBtn");
   var commentCountEl = document.getElementById("commentCount");
+  var adminToggleBtn = document.getElementById("adminToggleBtn");
+  var adminPanel = document.getElementById("adminPanel");
+  var adminTokenForm = document.getElementById("adminTokenForm");
+  var adminTokenInput = document.getElementById("adminTokenInput");
+  var adminLoginBtn = document.getElementById("adminLoginBtn");
+  var adminLogoutBtn = document.getElementById("adminLogoutBtn");
+  var adminState = document.getElementById("adminState");
 
   if (!commentForm || !nameInput || !commentInput || !commentsList || !commentStatus || !commentSubmitBtn) {
     return;
@@ -37,21 +44,11 @@
 
   var GUEST_NAME_KEY = "matthias_icu_guest_name";
   var LOCAL_COMMENTS_KEY = "matthias_icu_comments_local";
+  var ADMIN_TOKEN_KEY = "matthias_icu_comments_admin_token";
 
-  // Admin login state (saved in sessionStorage for simplicity)
-  var ADMIN_SESSION_KEY = "matthias_icu_admin_logged_in";
-
-  function isAdmin() {
-    return sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
-  }
-
-  function setAdminLoggedIn(loggedIn) {
-    if (loggedIn) {
-      sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
-    } else {
-      sessionStorage.removeItem(ADMIN_SESSION_KEY);
-    }
-  }
+  var adminToken = "";
+  var isAdmin = false;
+  var lastComments = [];
 
   function setStatus(message, isError) {
     commentStatus.textContent = message || "";
@@ -94,6 +91,69 @@
     }).format(date);
   }
 
+  function parseCommentId(value) {
+    var normalized = String(value || "").trim();
+    if (!/^[1-9][0-9]*$/.test(normalized)) {
+      return null;
+    }
+    return Number(normalized);
+  }
+
+  function readStoredAdminToken() {
+    try {
+      return String(localStorage.getItem(ADMIN_TOKEN_KEY) || "").trim();
+    } catch (_e) {
+      return "";
+    }
+  }
+
+  function writeStoredAdminToken(token) {
+    try {
+      localStorage.setItem(ADMIN_TOKEN_KEY, String(token || ""));
+    } catch (_e) {}
+  }
+
+  function clearStoredAdminToken() {
+    try {
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+    } catch (_e) {}
+  }
+
+  function setAdminPanelVisible(visible) {
+    if (!adminPanel || !adminToggleBtn) {
+      return;
+    }
+
+    var isVisible = Boolean(visible);
+    adminPanel.hidden = !isVisible;
+    adminToggleBtn.setAttribute("aria-expanded", isVisible ? "true" : "false");
+    if (isVisible && adminTokenInput) {
+      adminTokenInput.focus();
+    }
+  }
+
+  function updateAdminUi() {
+    if (!adminLoginBtn || !adminLogoutBtn || !adminState) {
+      return;
+    }
+
+    adminLoginBtn.textContent = isAdmin ? "Token aktualisieren" : "Aktivieren";
+    adminLogoutBtn.hidden = !isAdmin;
+    adminState.textContent = isAdmin ? "Admin aktiv" : "Admin aus";
+    adminState.style.color = isAdmin ? "#1d4c75" : "#6a8194";
+
+    if (adminToggleBtn) {
+      adminToggleBtn.textContent = isAdmin ? "Admin aktiv" : "Admin";
+    }
+
+    if (adminTokenInput) {
+      adminTokenInput.value = "";
+      adminTokenInput.placeholder = isAdmin
+        ? "Neuen Admin-Token eingeben"
+        : "Admin-Token eingeben";
+    }
+  }
+
   function createCommentItem(item) {
     var wrapper = document.createElement("article");
     wrapper.className = "comment-item";
@@ -112,9 +172,26 @@
     name.className = "comment-name";
     name.textContent = String(item.guest_name || "Gast");
 
+    var metaActions = document.createElement("div");
+    metaActions.className = "comment-meta-actions";
+
     var date = document.createElement("time");
     date.className = "comment-date";
     date.textContent = formatDate(item.created_at);
+
+    metaActions.appendChild(date);
+
+    if (isAdmin) {
+      var deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "comment-delete-btn";
+      deleteBtn.textContent = "Löschen";
+      deleteBtn.setAttribute("data-comment-id", String(item && item.id ? item.id : ""));
+      if (!item || !item.id) {
+        deleteBtn.disabled = true;
+      }
+      metaActions.appendChild(deleteBtn);
+    }
 
     var text = document.createElement("p");
     text.className = "comment-text";
@@ -123,34 +200,14 @@
     identity.appendChild(avatar);
     identity.appendChild(name);
     head.appendChild(identity);
-    head.appendChild(date);
-
-    // Add delete button if admin
-    if (isAdmin()) {
-      var delButton = document.createElement("button");
-      delButton.textContent = "Löschen";
-      delButton.style.marginLeft = "auto";
-      delButton.style.backgroundColor = "#f28c00";
-      delButton.style.color = "white";
-      delButton.style.border = "none";
-      delButton.style.borderRadius = "6px";
-      delButton.style.padding = "2px 8px";
-      delButton.style.cursor = "pointer";
-      delButton.title = "Kommentar löschen";
-      delButton.addEventListener("click", function () {
-        if (confirm(`Kommentar von '${item.guest_name}' wirklich löschen?`)) {
-          deleteComment(item.id);
-        }
-      });
-      head.appendChild(delButton);
-    }
-
+    head.appendChild(metaActions);
     wrapper.appendChild(head);
     wrapper.appendChild(text);
     return wrapper;
   }
 
   function renderComments(comments) {
+    lastComments = Array.isArray(comments) ? comments.slice() : [];
     commentsList.innerHTML = "";
     if (!Array.isArray(comments) || comments.length === 0) {
       var empty = document.createElement("p");
@@ -184,6 +241,15 @@
     } catch (_e) {}
   }
 
+  function removeCommentFromLocalCache(commentId) {
+    var localComments = readLocalComments();
+    var idText = String(commentId);
+    var filtered = localComments.filter(function (item) {
+      return String(item && item.id) !== idText;
+    });
+    writeLocalComments(filtered.slice(0, 100));
+  }
+
   async function readJsonResponse(response) {
     var contentType = String(response.headers.get("content-type") || "").toLowerCase();
     if (contentType.indexOf("application/json") === -1) {
@@ -195,6 +261,28 @@
       );
     }
     return response.json();
+  }
+
+  async function deleteCommentApi(commentId) {
+    var response = await fetch("/api/comments?id=" + encodeURIComponent(String(commentId)), {
+      method: "DELETE",
+      headers: {
+        "x-admin-token": adminToken
+      }
+    });
+    var payload = await readJsonResponse(response);
+    if (!response.ok) {
+      if (response.status === 401) {
+        adminToken = "";
+        isAdmin = false;
+        clearStoredAdminToken();
+        updateAdminUi();
+        renderComments(lastComments);
+        setAdminPanelVisible(true);
+      }
+      throw new Error(payload.error || "Kommentar konnte nicht gelöscht werden.");
+    }
+    return payload;
   }
 
   async function loadComments() {
@@ -219,118 +307,111 @@
     }
   }
 
-  async function deleteComment(commentId) {
-    if (!commentId) return;
-    setStatus("Lösche Kommentar...", false);
+  async function handleDeleteClick(buttonEl) {
+    var commentIdRaw = String(buttonEl.getAttribute("data-comment-id") || "").trim();
+    if (!commentIdRaw) {
+      setStatus("Kommentar-ID fehlt.", true);
+      return;
+    }
+
+    if (!window.confirm("Diesen Kommentar wirklich löschen?")) {
+      return;
+    }
+
+    if (commentIdRaw.indexOf("local-") === 0) {
+      removeCommentFromLocalCache(commentIdRaw);
+      renderComments(readLocalComments());
+      setStatus("Lokaler Kommentar gelöscht.", false);
+      return;
+    }
+
+    var parsedId = parseCommentId(commentIdRaw);
+    if (!parsedId) {
+      setStatus("Kommentar-ID ist ungültig.", true);
+      return;
+    }
+
+    if (!isAdmin || !adminToken) {
+      setAdminPanelVisible(true);
+      setStatus("Bitte zuerst als Admin anmelden.", true);
+      return;
+    }
+
+    buttonEl.disabled = true;
     try {
-      var response = await fetch("/api/comments/" + encodeURIComponent(commentId), {
-        method: "DELETE"
-      });
-      if (!response.ok) {
-        throw new Error("Kommentar konnte nicht gelöscht werden.");
-      }
+      await deleteCommentApi(parsedId);
+      removeCommentFromLocalCache(parsedId);
       setStatus("Kommentar gelöscht.", false);
       await loadComments();
     } catch (err) {
-      setStatus("Fehler beim Löschen des Kommentars: " + (err.message || err), true);
+      setStatus(String(err && err.message ? err.message : err), true);
+    } finally {
+      buttonEl.disabled = false;
     }
   }
 
-  // Login form for admin
-  function createAdminLoginForm() {
-    var container = document.createElement("div");
-    container.style.border = "1px solid #f28c00";
-    container.style.padding = "12px";
-    container.style.borderRadius = "10px";
-    container.style.marginBottom = "16px";
-    container.style.backgroundColor = "#fff8e1";
+  commentsList.addEventListener("click", function (event) {
+    var target = event.target;
+    if (!target) {
+      return;
+    }
 
-    var title = document.createElement("h4");
-    title.textContent = "Admin Login";
-    title.style.color = "#f28c00";
-    title.style.fontFamily = '"DM Serif Display", Georgia, serif';
-    container.appendChild(title);
+    var button = target.closest ? target.closest(".comment-delete-btn") : null;
+    if (!button || !commentsList.contains(button)) {
+      return;
+    }
 
-    var input = document.createElement("input");
-    input.type = "password";
-    input.placeholder = "Admin Passwort";
-    input.style.padding = "8px";
-    input.style.width = "calc(100% - 90px)";
-    input.style.marginRight = "8px";
-    input.style.border = "1px solid #ccc";
-    input.style.borderRadius = "6px";
+    handleDeleteClick(button);
+  });
 
-    var btn = document.createElement("button");
-    btn.textContent = "Einloggen";
-    btn.style.backgroundColor = "#f28c00";
-    btn.style.color = "white";
-    btn.style.border = "none";
-    btn.style.borderRadius = "6px";
-    btn.style.padding = "8px 12px";
-    btn.style.cursor = "pointer";
+  adminToken = readStoredAdminToken();
+  isAdmin = Boolean(adminToken);
+  updateAdminUi();
+  setAdminPanelVisible(false);
 
-    btn.addEventListener("click", function () {
-      var pwd = input.value;
-      // Einfaches Admin-Passwort prüfen (hier "admin123" als Beispiel)
-      if (pwd === "admin123") {
-        setAdminLoggedIn(true);
-        container.remove();
-        renderCommentsUI();
-        setStatus("Admin Login erfolgreich. Kommentare können nun gelöscht werden.", false);
-      } else {
-        alert("Falsches Passwort.");
-        input.value = "";
-        input.focus();
+  if (adminToggleBtn) {
+    adminToggleBtn.addEventListener("click", function () {
+      if (!adminPanel) {
+        return;
       }
+      setAdminPanelVisible(adminPanel.hidden);
     });
-
-    container.appendChild(input);
-    container.appendChild(btn);
-
-    return container;
   }
 
-  var commentBoard = document.querySelector(".comment-board");
+  if (adminTokenForm) {
+    adminTokenForm.addEventListener("submit", function (event) {
+      event.preventDefault();
 
-  function renderCommentsUI() {
-    if (!commentBoard) return;
-
-    // Entferne evtl vorhandenes login form
-    var existingLogin = commentBoard.querySelector(".admin-login-container");
-    if (existingLogin) {
-      existingLogin.remove();
-    }
-
-    if (!isAdmin()) {
-      // Zeige Login Formular an
-      var loginForm = createAdminLoginForm();
-      loginForm.classList.add("admin-login-container");
-      commentBoard.insertBefore(loginForm, commentBoard.firstChild);
-    } else {
-      // Admin ist eingeloggt
-      // Zeige Logout Button
-      var logoutBtn = commentBoard.querySelector(".admin-logout-btn");
-      if (!logoutBtn) {
-        logoutBtn = document.createElement("button");
-        logoutBtn.textContent = "Admin Logout";
-        logoutBtn.className = "admin-logout-btn";
-        logoutBtn.style.marginBottom = "12px";
-        logoutBtn.style.backgroundColor = "#f28c00";
-        logoutBtn.style.color = "white";
-        logoutBtn.style.border = "none";
-        logoutBtn.style.borderRadius = "6px";
-        logoutBtn.style.padding = "8px 12px";
-        logoutBtn.style.cursor = "pointer";
-        logoutBtn.addEventListener("click", function () {
-          setAdminLoggedIn(false);
-          renderCommentsUI();
-          setStatus("Admin-Logout erfolgreich.", false);
-        });
-        commentBoard.insertBefore(logoutBtn, commentBoard.firstChild);
+      var entered = String((adminTokenInput && adminTokenInput.value) || "").trim();
+      if (!entered) {
+        setStatus("Bitte Admin-Token eingeben.", true);
+        if (adminTokenInput) {
+          adminTokenInput.focus();
+        }
+        return;
       }
-    }
 
-    loadComments();
+      var wasAdmin = isAdmin;
+      adminToken = entered;
+      isAdmin = true;
+      writeStoredAdminToken(adminToken);
+      updateAdminUi();
+      renderComments(lastComments);
+      setAdminPanelVisible(false);
+      setStatus(wasAdmin ? "Admin-Token aktualisiert." : "Admin-Modus aktiv.", false);
+    });
+  }
+
+  if (adminLogoutBtn) {
+    adminLogoutBtn.addEventListener("click", function () {
+      adminToken = "";
+      isAdmin = false;
+      clearStoredAdminToken();
+      updateAdminUi();
+      renderComments(lastComments);
+      setAdminPanelVisible(false);
+      setStatus("Admin-Modus beendet.", false);
+    });
   }
 
   var savedGuestName = "";
@@ -434,7 +515,5 @@
   commentInput.addEventListener("input", updateCounter);
 
   updateCounter();
-
-  renderCommentsUI();
-
+  loadComments();
 })();
