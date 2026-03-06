@@ -69,14 +69,11 @@ else
 fi
 
 echo "Deploye Website aus: $SITE_DIR"
-# Wrangler v4 erkennt `functions/` automatisch relativ zum CWD.
-(
-  cd "$SITE_DIR"
-  ${WRANGLER[@]} pages deploy . \
-    --project-name "$PROJECT_NAME" \
-    --branch "$DEPLOY_BRANCH" \
-    --commit-dirty=true
-)
+${WRANGLER[@]} pages deploy "$SITE_DIR" \
+  --project-name "$PROJECT_NAME" \
+  --branch "$DEPLOY_BRANCH" \
+  --commit-dirty=true \
+  --functions "$SITE_DIR/functions"
 
 echo
 echo "Deploy abgeschlossen."

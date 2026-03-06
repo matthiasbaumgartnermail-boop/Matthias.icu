@@ -25,56 +25,17 @@ function normalizeComment(value) {
     .trim();
 }
 
-function parsePositiveInt(value) {
-  const normalized = String(value || "").trim();
-  if (!/^[1-9][0-9]*$/.test(normalized)) {
-    return null;
-  }
-  return Number(normalized);
-}
-
-function readAdminToken(request) {
-  const headerToken = String(request.headers.get("x-admin-token") || "").trim();
-  if (headerToken) {
-    return headerToken;
-  }
-
-  const authHeader = String(request.headers.get("authorization") || "").trim();
-  if (/^Bearer\s+/i.test(authHeader)) {
-    return authHeader.replace(/^Bearer\s+/i, "").trim();
-  }
-
-  return "";
-}
-
-function requireAdmin(context) {
-  const expected = String((context.env && context.env.COMMENTS_ADMIN_TOKEN) || "").trim();
-  if (!expected) {
-    return {
-      ok: false,
-      status: 503,
-      error: "Admin-Löschen ist noch nicht konfiguriert (COMMENTS_ADMIN_TOKEN fehlt).",
-    };
-  }
-
-  const received = readAdminToken(context.request);
-  if (!received) {
-    return { ok: false, status: 401, error: "Admin-Token fehlt." };
-  }
-  if (received !== expected) {
-    return { ok: false, status: 401, error: "Admin-Token ungültig." };
-  }
-
-  return { ok: true };
-}
-
 async function ensureSchema(db) {
-  await db.exec(
-    "CREATE TABLE IF NOT EXISTS website_comments (id INTEGER PRIMARY KEY AUTOINCREMENT, guest_name TEXT NOT NULL, comment TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')))"
-  );
-  await db.exec(
-    "CREATE INDEX IF NOT EXISTS idx_website_comments_created_at ON website_comments(created_at DESC)"
-  );
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS website_comments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guest_name TEXT NOT NULL,
+      comment TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_website_comments_created_at
+      ON website_comments(created_at DESC);
+  `);
 }
 
 function getDb(env) {
@@ -178,49 +139,6 @@ export async function onRequestPost(context) {
   } catch (err) {
     return json(
       { error: err && err.message ? err.message : "Fehler beim Speichern des Kommentars." },
-      500
-    );
-  }
-}
-
-export async function onRequestDelete(context) {
-  const db = getDb(context.env);
-  if (!db) {
-    return json(
-      {
-        error: "Kommentare sind noch nicht konfiguriert (D1-Binding COMMENTS_DB fehlt).",
-      },
-      503
-    );
-  }
-
-  const auth = requireAdmin(context);
-  if (!auth.ok) {
-    return json({ error: auth.error }, auth.status);
-  }
-
-  const url = new URL(context.request.url);
-  const id = parsePositiveInt(url.searchParams.get("id"));
-  if (!id) {
-    return json({ error: "Kommentar-ID fehlt oder ist ungültig." }, 400);
-  }
-
-  try {
-    await ensureSchema(db);
-    const out = await db
-      .prepare("DELETE FROM website_comments WHERE id = ?1")
-      .bind(id)
-      .run();
-
-    const changes = out && out.meta ? Number(out.meta.changes || 0) : 0;
-    if (changes < 1) {
-      return json({ error: "Kommentar nicht gefunden." }, 404);
-    }
-
-    return json({ ok: true, id });
-  } catch (err) {
-    return json(
-      { error: err && err.message ? err.message : "Fehler beim Löschen des Kommentars." },
       500
     );
   }

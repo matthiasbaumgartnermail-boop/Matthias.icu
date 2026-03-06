@@ -74,15 +74,3 @@ Damit Kommentare fuer alle gespeichert werden, braucht das Pages-Projekt eine D1
 cd /Users/matthiasbaumgartner/Coding/PraeProject
 ./website/deploy_pages.sh matthias-homepage production
 ```
-
-### D) Admin-Löschen von Kommentaren aktivieren
-1. `Workers & Pages` -> `matthias-homepage` -> `Settings` -> `Variables and Secrets`
-2. Neues Secret anlegen:
-   - Name: `COMMENTS_ADMIN_TOKEN`
-   - Value: ein langes, eigenes Geheimnis
-3. Speichern und neu deployen.
-
-Auf der Website:
-- Unter „Neueste Kommentare“ auf `Admin anmelden` klicken.
-- `COMMENTS_ADMIN_TOKEN` eingeben.
-- Danach erscheint bei jedem Kommentar ein `Löschen`-Button.
